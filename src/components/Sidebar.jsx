@@ -183,14 +183,19 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import {
-  Home,
-  CreditCard,
-  User,
-  LogOut,
-  ChevronRight,
-  ChevronLeft,
-  Menu,
-} from "lucide-react";
+  HomeIcon,
+  CreditCardIcon,
+  UserIcon,
+  ArrowRightOnRectangleIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  Bars3Icon,
+  SparklesIcon,
+  CurrencyDollarIcon,
+  BellIcon,
+  CogIcon,
+  ChartPieIcon
+} from "@heroicons/react/24/solid";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -199,6 +204,7 @@ const Sidebar = () => {
   const [isHovering, setIsHovering] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [glitterParticles, setGlitterParticles] = useState([]);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -221,114 +227,106 @@ const Sidebar = () => {
     setIsVisible(true);
   }, []);
 
+  // Generate glitter particles
+  useEffect(() => {
+    // Create initial particles
+    generateGlitterParticles();
+
+    // Regenerate particles every 3 seconds
+    const interval = setInterval(generateGlitterParticles, 3000);
+    return () => clearInterval(interval);
+  }, [isCollapsed]);
+
+  const generateGlitterParticles = () => {
+    const newParticles = [];
+    const count = isCollapsed ? 15 : 30;
+    
+    for (let i = 0; i < count; i++) {
+      newParticles.push({
+        id: `particle-${Date.now()}-${i}`,
+        left: `${Math.random() * (isCollapsed ? 80 : 256)}px`,
+        top: `${Math.random() * 100}%`,
+        size: `${Math.random() * 4 + 1}px`,
+        duration: `${Math.random() * 3 + 2}s`,
+        delay: `${Math.random() * 2}s`,
+        color: getRandomColor(),
+      });
+    }
+    
+    setGlitterParticles(newParticles);
+  };
+
+  const getRandomColor = () => {
+    const colors = [
+      "#4F46E5", // indigo
+      "#10B981", // emerald
+      "#F59E0B", // amber
+      "#EC4899", // pink
+      "#8B5CF6", // violet
+      "#06B6D4", // cyan
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
   const navItems = [
     {
       name: "Dashboard",
       path: "/",
       icon: (active, hovering) => (
         <div className="relative">
-          <Home
-            className={`w-5 h-5 transition-all duration-300 ${
-              active || hovering ? "text-indigo-600 scale-110" : "text-gray-500"
+          <HomeIcon
+            className={`w-6 h-6 transition-all duration-300 ${
+              active || hovering ? "text-purple-600 scale-110" : "text-gray-500"
             }`}
           />
           {(active || hovering) && (
-            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full animate-pulse" />
+            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-purple-600 rounded-full animate-ping" />
           )}
         </div>
       ),
+      bgColor: "from-purple-500/20 to-purple-500/5",
+      borderColor: "border-purple-500",
+      textColor: "text-purple-600"
     },
     {
       name: "Transactions",
       path: "/transactions",
       icon: (active, hovering) => (
         <div className="relative">
-          <div
-            className={`transition-all duration-300 ${
-              active || hovering ? "text-green-500 scale-110" : "text-gray-500"
+          <CurrencyDollarIcon
+            className={`w-6 h-6 transition-all duration-300 ${
+              active || hovering ? "text-emerald-500 scale-110" : "text-gray-500"
             }`}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 25 25"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`transition-transform duration-500 ${
-                active || hovering ? "animate-bounce" : ""
-              }`}
-            >
-              <path
-                d="M5.2085 22.9167C5.20915 23.469 5.42885 23.9986 5.81941 24.3891C6.20997 24.7797 6.7395 24.9994 7.29183 25H17.7085C18.2608 24.9994 18.7904 24.7797 19.1809 24.3891C19.5715 23.9986 19.7912 23.469 19.7918 22.9167V22.0052H5.2085V22.9167Z"
-                fill="currentColor"
-              />
-              <path
-                d="M19.7918 2.08333C19.7912 1.531 19.5715 1.00148 19.1809 0.610917C18.7904 0.220358 18.2608 0.00065473 17.7085 0L7.29183 0C6.7395 0.00065473 6.20997 0.220358 5.81941 0.610917C5.42885 1.00148 5.20915 1.531 5.2085 2.08333V3.125H19.7918V2.08333Z"
-                fill="currentColor"
-              />
-              <path
-                d="M24.7096 6.70052L21.5846 3.44531L20.0817 4.88802L21.3892 6.25H19.7915V8.33333H21.5015L20.1125 9.66459L21.5539 11.1688L24.6789 8.17396C24.7777 8.07926 24.8569 7.96602 24.9119 7.8407C24.9669 7.71538 24.9967 7.58045 24.9996 7.44361C25.0024 7.30677 24.9783 7.17071 24.9285 7.04321C24.8788 6.91571 24.8044 6.79926 24.7096 6.70052Z"
-                fill="currentColor"
-              />
-              <path
-                d="M16.6668 6.24996H19.7918V4.16663H5.2085V16.6666H8.3335V18.75H5.2085V20.8333H19.7918V8.33329H16.6668V6.24996ZM15.6252 10.4166H11.9793C11.8412 10.4166 11.7087 10.4715 11.611 10.5692C11.5134 10.6669 11.4585 10.7993 11.4585 10.9375C11.4585 11.0756 11.5134 11.2081 11.611 11.3057C11.7087 11.4034 11.8412 11.4583 11.9793 11.4583H13.021C13.6668 11.4576 14.2898 11.697 14.7691 12.1298C15.2484 12.5627 15.5497 13.1582 15.6146 13.8007C15.6795 14.4433 15.5033 15.087 15.1203 15.607C14.7373 16.1269 14.1747 16.486 13.5418 16.6145V17.7083H11.4585V16.6666H9.37516V14.5833H13.021C13.1591 14.5833 13.2916 14.5284 13.3893 14.4307C13.487 14.3331 13.5418 14.2006 13.5418 14.0625C13.5418 13.9243 13.487 13.7919 13.3893 13.6942C13.2916 13.5965 13.1591 13.5416 13.021 13.5416H11.9793C11.3335 13.5423 10.7105 13.3029 10.2312 12.8701C9.75197 12.4372 9.45063 11.8417 9.38573 11.1992C9.32083 10.5566 9.49699 9.9129 9.88001 9.39294C10.263 8.87298 10.8256 8.51389 11.4585 8.38538V7.29163H13.5418V8.33329H15.6252V10.4166Z"
-                fill="currentColor"
-              />
-              <path
-                d="M3.49828 16.6667L4.88734 15.3355L3.44593 13.8313L0.320931 16.8261C0.222115 16.9208 0.142929 17.034 0.0879011 17.1594C0.0328728 17.2847 0.00308028 17.4196 0.000226477 17.5564C-0.00262733 17.6933 0.0215135 17.8293 0.0712692 17.9568C0.121025 18.0843 0.19542 18.2008 0.290202 18.2995L3.4152 21.5547L4.91807 20.112L3.61064 18.75H5.2083V16.6667H3.49828Z"
-                fill="currentColor"
-              />
-            </svg>
-          </div>
+          />
           {(active || hovering) && (
-            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
           )}
         </div>
       ),
+      bgColor: "from-emerald-500/20 to-emerald-500/5",
+      borderColor: "border-emerald-500",
+      textColor: "text-emerald-600"
     },
     {
       name: "Profile",
       path: "/profile",
       icon: (active, hovering) => (
         <div className="relative">
-          <div
-            className={`transition-all duration-300 ${
-              active || hovering ? "text-purple-500 scale-110" : "text-gray-500"
+          <UserIcon
+            className={`w-6 h-6 transition-all duration-300 ${
+              active || hovering ? "text-pink-500 scale-110" : "text-gray-500"
             }`}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 25 25"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`transition-all duration-300 ${
-                active || hovering ? "animate-pulse" : ""
-              }`}
-            >
-              <g clipPath="url(#clip0_1_1809)">
-                <path
-                  d="M12.3218 12.0426C13.9762 12.0426 15.4088 11.4492 16.5794 10.2785C17.7499 9.10793 18.3433 7.67571 18.3433 6.02109C18.3433 4.36705 17.7499 2.93463 16.5792 1.76372C15.4085 0.593374 13.976 0 12.3218 0C10.6672 0 9.23494 0.593374 8.0644 1.76391C6.89386 2.93444 6.30029 4.36686 6.30029 6.02109C6.30029 7.67571 6.89386 9.10813 8.06459 10.2787C9.23532 11.449 10.6677 12.0426 12.3218 12.0426Z"
-                  fill="currentColor"
-                />
-                <path
-                  d="M22.8579 19.2237C22.8241 18.7366 22.7558 18.2052 22.6553 17.644C22.5538 17.0787 22.4232 16.5443 22.2668 16.0558C22.1052 15.5509 21.8855 15.0523 21.6139 14.5745C21.332 14.0786 21.0009 13.6468 20.6293 13.2915C20.2408 12.9197 19.7651 12.6209 19.215 12.4028C18.6668 12.186 18.0593 12.0761 17.4095 12.0761C17.1543 12.0761 16.9075 12.1808 16.4309 12.4912C16.1375 12.6825 15.7944 12.9037 15.4114 13.1484C15.0839 13.3571 14.6402 13.5526 14.0923 13.7296C13.5576 13.9026 13.0148 13.9903 12.479 13.9903C11.9432 13.9903 11.4006 13.9026 10.8654 13.7296C10.318 13.5528 9.87434 13.3573 9.54723 13.1486C9.16786 12.9062 8.82454 12.6849 8.5268 12.491C8.05073 12.1806 7.80373 12.0759 7.54852 12.0759C6.8985 12.0759 6.2912 12.186 5.74322 12.403C5.19352 12.6207 4.71764 12.9195 4.32873 13.2917C3.95737 13.6472 3.62606 14.0788 3.34454 14.5745C3.07312 15.0523 2.85339 15.5507 2.69165 16.056C2.53544 16.5444 2.40479 17.0787 2.30331 17.644C2.2028 18.2044 2.13451 18.736 2.10075 19.2243C2.06757 19.7026 2.05078 20.1991 2.05078 20.7005C2.05078 22.0055 2.46563 23.062 3.28369 23.8412C4.09164 24.61 5.16071 25.0001 6.46076 25.0001H18.4984C19.7985 25.0001 20.8672 24.6102 21.6753 23.8412C22.4936 23.0626 22.9084 22.0059 22.9084 20.7003C22.9082 20.1966 22.8912 19.6998 22.8579 19.2237Z"
-                  fill="currentColor"
-                />
-              </g>
-              <defs>
-                <clipPath id="clip0_1_1809">
-                  <rect width="25" height="25" fill="white" />
-                </clipPath>
-              </defs>
-            </svg>
-          </div>
+          />
           {(active || hovering) && (
-            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+            <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-pink-500 rounded-full animate-ping" />
           )}
         </div>
       ),
+      bgColor: "from-pink-500/20 to-pink-500/5",
+      borderColor: "border-pink-500",
+      textColor: "text-pink-600"
     },
+    
   ];
 
   return (
@@ -337,14 +335,14 @@ const Sidebar = () => {
       {isMobile && (
         <button
           onClick={() => setIsVisible(!isVisible)}
-          className="fixed top-4 left-4 z-50 bg-indigo-600 text-white p-2 rounded-full shadow-lg"
+          className="fixed top-4 left-4 z-50 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2 rounded-full shadow-lg hover:shadow-indigo-500/50 transition-all duration-300"
         >
-          <Menu className="w-5 h-5" />
+          <Bars3Icon className="w-5 h-5" />
         </button>
       )}
 
       <div
-        className={`fixed inset-0 bg-black/50 z-30 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-30 transition-opacity duration-300 ${
           isVisible && isMobile
             ? "opacity-100"
             : "opacity-0 pointer-events-none"
@@ -355,22 +353,51 @@ const Sidebar = () => {
       <div
         className={`${
           isCollapsed ? "w-20" : "w-64"
-        } bg-white h-screen fixed left-0 top-0 shadow-xl z-40 transition-all duration-500 ease-in-out ${
+        } bg-white dark:bg-gray-900 h-screen fixed left-0 top-0 shadow-xl z-40 transition-all duration-500 ease-in-out ${
           isVisible ? "translate-x-0" : "-translate-x-full"
-        } ${isMobile ? "rounded-r-2xl" : ""}`}
+        } ${isMobile ? "rounded-r-2xl" : ""} overflow-hidden`}
       >
-        <div className="h-full flex flex-col justify-between bg-gradient-to-b from-white to-gray-50">
-          <div className="relative">
+        {/* Glitter particles - these move around the sidebar */}
+        {glitterParticles.map((particle) => (
+          <span
+            key={particle.id}
+            className="absolute rounded-full pointer-events-none animate-float"
+            style={{
+              left: particle.left,
+              top: particle.top,
+              width: particle.size,
+              height: particle.size,
+              backgroundColor: particle.color,
+              opacity: 0.7,
+              boxShadow: `0 0 6px ${particle.color}`,
+              animationDuration: particle.duration,
+              animationDelay: particle.delay,
+            }}
+          />
+        ))}
+        
+        {/* Glass effect overlay */}
+        <div className="absolute inset-0 bg-white/30 dark:bg-gray-900/30 backdrop-blur-md z-0" />
+        
+        <div className="h-full flex flex-col justify-between z-10 relative overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 opacity-90" />
+          
+          {/* Animated decorative circles */}
+          <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-indigo-500 rounded-full opacity-10 animate-pulse" />
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-purple-500 rounded-full opacity-10 animate-pulse" style={{ animationDelay: "1s" }} />
+          
+          <div className="relative z-10">
             {/* Collapse toggle button */}
             {!isMobile && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-10 bg-indigo-600 text-white p-1 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 hover:scale-110"
+                className="absolute -right-3 top-10 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-1 rounded-full shadow-lg hover:shadow-indigo-500/50 hover:from-indigo-600 hover:to-purple-600 transition-all duration-300 hover:scale-110"
               >
                 {isCollapsed ? (
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRightIcon className=" w-8 h-4" />
                 ) : (
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeftIcon className=" w-8 h-4" />
                 )}
               </button>
             )}
@@ -382,60 +409,27 @@ const Sidebar = () => {
               } transition-all duration-300`}
             >
               <div className="relative overflow-hidden">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="30"
-                  height="30"
-                  viewBox="0 0 128 128"
-                >
-                  <path
-                    fill="#FFCA28"
-                    d="M93.46 39.45c6.71-1.49 15.45-8.15 16.78-11.43c.78-1.92-3.11-4.92-4.15-6.13c-2.38-2.76-1.42-4.12-.5-7.41c1.05-3.74-1.44-7.87-4.97-9.49s-7.75-1.11-11.3.47s-6.58 4.12-9.55 6.62c-2.17-1.37-5.63-7.42-11.23-3.49c-3.87 2.71-4.22 8.61-3.72 13.32c1.17 10.87 3.85 16.51 8.9 18.03c6.38 1.92 13.44.91 19.74-.49z"
-                  />
-                  <path
-                    fill="#E2A610"
-                    d="M104.36 8.18c-.85 14.65-15.14 24.37-21.92 28.65l4.4 3.78s2.79.06 6.61-1.16c6.55-2.08 16.12-7.96 16.78-11.43c.97-5.05-4.21-3.95-5.38-7.94c-.61-2.11 2.97-6.1-.49-11.9zm-24.58 3.91s-2.55-2.61-4.44-3.8c-.94 1.77-1.61 3.69-1.94 5.67c-.59 3.48 0 8.42 1.39 12.1c.22.57 1.04.48 1.13-.12c1.2-7.91 3.86-13.85 3.86-13.85z"
-                  />
-                  <path
-                    fill="#FFCA28"
-                    d="M61.96 38.16S30.77 41.53 16.7 68.61s-2.11 43.5 10.55 49.48c12.66 5.98 44.56 8.09 65.31 3.17s25.94-15.12 24.97-24.97c-1.41-14.38-14.77-23.22-14.77-23.22s.53-17.76-13.25-29.29c-12.23-10.24-27.55-5.62-27.55-5.62z"
-                  />
-                  <path
-                    fill="#6B4B46"
-                    d="M74.76 83.73c-6.69-8.44-14.59-9.57-17.12-12.6c-1.38-1.65-2.19-3.32-1.88-5.39c.33-2.2 2.88-3.72 4.86-4.09c2.31-.44 7.82-.21 12.45 4.2c1.1 1.04.7 2.66.67 4.11c-.08 3.11 4.37 6.13 7.97 3.53c3.61-2.61.84-8.42-1.49-11.24c-1.76-2.13-8.14-6.82-16.07-7.56c-2.23-.21-11.2-1.54-16.38 8.31c-1.49 2.83-2.04 9.67 5.76 15.45c1.63 1.21 10.09 5.51 12.44 8.3c4.07 4.83 1.28 9.08-1.9 9.64c-8.67 1.52-13.58-3.17-14.49-5.74c-.65-1.83.03-3.81-.81-5.53c-.86-1.77-2.62-2.47-4.48-1.88c-6.1 1.94-4.16 8.61-1.46 12.28c2.89 3.93 6.44 6.3 10.43 7.6c14.89 4.85 22.05-2.81 23.3-8.42c.92-4.11.82-7.67-1.8-10.97z"
-                  />
-                  <path
-                    fill="none"
-                    stroke="#6B4B46"
-                    stroke-miterlimit="10"
-                    stroke-width="5"
-                    d="M71.16 48.99c-12.67 27.06-14.85 61.23-14.85 61.23"
-                  />
-                  <path
-                    fill="#6D4C41"
-                    d="M81.67 31.96c8.44 2.75 10.31 10.38 9.7 12.46c-.73 2.44-10.08-7.06-23.98-6.49c-4.86.2-3.45-2.78-1.2-4.5c2.97-2.27 7.96-3.91 15.48-1.47z"
-                  />
-                  <path
-                    fill="#6B4B46"
-                    d="M81.67 31.96c8.44 2.75 10.31 10.38 9.7 12.46c-.73 2.44-10.08-7.06-23.98-6.49c-4.86.2-3.45-2.78-1.2-4.5c2.97-2.27 7.96-3.91 15.48-1.47z"
-                  />
-                  <path
-                    fill="#E2A610"
-                    d="M96.49 58.86c1.06-.73 4.62.53 5.62 7.5c.49 3.41.64 6.71.64 6.71s-4.2-3.77-5.59-6.42c-1.75-3.35-2.43-6.59-.67-7.79z"
-                  />
-                </svg>
+                <div className="relative flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg transform transition-all duration-300 hover:scale-110">
+                  <SparklesIcon className="w-6 h-6 text-white animate-pulse" />
+                  
+                  {/* Animated glowing effect */}
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-400 opacity-0 animate-glow" />
+                </div>
 
-                {/* Animate coin */}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-ping" />
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-full animate-shine" />
+
+                {/* Animated particle */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full animate-ping" />
               </div>
 
               {!isCollapsed && (
-                <h1 className="ml-3 text-xl font-extrabold text-gray-800 overflow-hidden transition-all">
-                  <span className="text-indigo-500 inline-block animate-slideInRight">
+                <h1 className="ml-3 text-xl font-extrabold text-gray-800 dark:text-white overflow-hidden transition-all">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 inline-block animate-slideInRight">
                     Money 
                   </span>
                   <span
-                    className="text-emerald-600 inline-block animate-slideInRight"
+                    className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400 inline-block animate-slideInRight"
                     style={{ animationDelay: "200ms" }}
                   >
                     Matters
@@ -447,7 +441,7 @@ const Sidebar = () => {
             {/* Navigation */}
             <nav className={`mt-6 ${isCollapsed ? "px-2" : "px-4"}`}>
               <ul className="space-y-3">
-                {navItems.map(({ name, path, icon }) => {
+                {navItems.map(({ name, path, icon, bgColor, borderColor, textColor }) => {
                   const isActive = activeItem === name;
                   return (
                     <li key={name}>
@@ -456,28 +450,31 @@ const Sidebar = () => {
                         end
                         className={`group flex items-center ${
                           isCollapsed ? "justify-center" : "justify-start gap-3"
-                        } px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 hover:scale-105`}
+                        } px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 hover:scale-105 relative overflow-hidden`}
                         style={{
                           background: isActive
-                            ? "linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0.1) 100%)"
+                            ? `linear-gradient(135deg, ${bgColor.split(" ")[0].replace("from-", "")} 0%, ${bgColor.split(" ")[1].replace("to-", "")} 100%)`
                             : "",
                           boxShadow: isActive
-                            ? "0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06)"
+                            ? `0 4px 12px -1px ${bgColor.split(" ")[0].replace("from-", "").replace("/20", "/10")}, 0 2px 4px -1px ${bgColor.split(" ")[0].replace("from-", "").replace("/20", "/5")}`
                             : "",
-                          borderLeft: isActive ? "3px solid #6366f1" : "",
+                          borderLeft: isActive ? `3px solid ${borderColor.replace("border-", "")}` : "",
                         }}
                         onClick={() => setActiveItem(name)}
                         onMouseEnter={() => setIsHovering(name)}
                         onMouseLeave={() => setIsHovering(null)}
                       >
+                        {/* Shine effect on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        
                         {icon(isActive, isHovering === name)}
 
                         {!isCollapsed && (
                           <span
                             className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
                               isActive
-                                ? "text-indigo-600 font-semibold"
-                                : "text-gray-600"
+                                ? textColor + " font-semibold"
+                                : "text-gray-600 dark:text-gray-300"
                             }`}
                           >
                             {name}
@@ -486,7 +483,7 @@ const Sidebar = () => {
 
                         {/* Tooltip for collapsed state */}
                         {isCollapsed && (
-                          <div className="absolute left-14 bg-white text-gray-800 px-2 py-1 rounded shadow-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                          <div className="absolute left-14 backdrop-blur-md bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-white px-3 py-2 rounded-lg shadow-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100 dark:border-gray-700">
                             {name}
                           </div>
                         )}
@@ -501,7 +498,7 @@ const Sidebar = () => {
           {/* User Info */}
           {user && (
             <div
-              className={`border-t border-gray-100 mt-6 pt-6 ${
+              className={`relative z-10 border-t border-gray-100 dark:border-gray-800 mt-6 pt-6 ${
                 isCollapsed ? "px-2" : "px-6"
               } pb-6`}
             >
@@ -511,23 +508,23 @@ const Sidebar = () => {
                 } gap-3`}
               >
                 <div className="relative">
-                  <img
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                    alt="avatar"
-                    className={`${
-                      isCollapsed ? "w-12 h-12 mx-auto" : "w-12 h-12"
-                    } rounded-full ring-2 ring-indigo-500/30 transition-transform hover:scale-110 duration-300`}
-                  />
-                  <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 p-0.5">
+                    <img
+                      src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.email}&backgroundColor=6366f1`}
+                      alt="avatar"
+                      className={`rounded-full transition-transform hover:scale-110 duration-300`}
+                    />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-900"></span>
                 </div>
 
                 {!isCollapsed && (
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate animate-fadeIn">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate animate-fadeIn">
                       {user.email.split("@")[0]}
                     </p>
                     <p
-                      className="text-xs text-gray-500 truncate animate-fadeIn"
+                      className="text-xs text-gray-500 dark:text-gray-400 truncate animate-fadeIn"
                       style={{ animationDelay: "200ms" }}
                     >
                       {user.email}
@@ -538,11 +535,11 @@ const Sidebar = () => {
 
               <button
                 onClick={logout}
-                className={`mt-4 w-full flex items-center justify-center gap-2 text-sm text-red-500 hover:text-white hover:bg-red-500 py-2 px-4 rounded-lg transition-all duration-300 ${
+                className={`mt-4 w-full flex items-center justify-center gap-2 text-sm text-white py-2 px-4 rounded-lg transition-all duration-300 bg-gradient-to-r from-red-500 to-pink-500 hover:from-pink-500 hover:to-red-500 transform hover:scale-105 ${
                   isCollapsed ? "px-2" : "px-4"
                 }`}
               >
-                <LogOut className="w-4 h-4" />
+                <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 {!isCollapsed && <span>Sign Out</span>}
               </button>
             </div>
@@ -550,8 +547,9 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Add a decorative element */}
-      <div className="fixed bottom-0 left-0 w-64 h-32 bg-gradient-to-t from-indigo-500/10 to-transparent rounded-tr-full pointer-events-none z-30" />
+      {/* Add decorative elements */}
+      <div className="fixed bottom-0 left-0 w-64 h-32 bg-gradient-to-t from-indigo-500/20 to-transparent rounded-tr-full pointer-events-none z-30" />
+      <div className="fixed top-0 left-0 w-32 h-64 bg-gradient-to-r from-purple-500/20 to-transparent rounded-br-full pointer-events-none z-30" />
     </>
   );
 };
@@ -581,12 +579,62 @@ style.textContent = `
     }
   }
 
+  @keyframes float {
+    0% {
+      transform: translateY(0) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-40px) translateX(20px);
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(-80px) translateX(0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes shine {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
   .animate-slideInRight {
     animation: slideInRight 0.5s ease-out forwards;
   }
 
   .animate-fadeIn {
     animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
+  }
+
+  .animate-shine {
+    animation: shine 2s infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s infinite;
   }
 `;
 document.head.appendChild(style);
