@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
 
-const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint }) => {
+const EditTransactionModal = ({ isOpen, onClose, onTransactionUpdated, transaction, apiEndpoint }) => {
   const [formData, setFormData] = useState({
     transaction_name: '',
     type: 'debit',
     category: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0] // Default to today's date
+    date: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (transaction) {
+      setFormData({
+        transaction_name: transaction.transaction_name || '',
+        type: transaction.type || 'debit',
+        category: transaction.category || '',
+        amount: transaction.amount || '',
+        date: transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : ''
+      });
+    }
+  }, [transaction]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,7 +32,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
     }));
   };
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
   setIsLoading(true);
   setError(null);
@@ -37,33 +49,24 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
         'x-hasura-user-id': '1' // Replace with actual user ID from auth context
       },
       body: JSON.stringify({
+        id: transaction.id,
         transaction_name: formData.transaction_name,
         type: formData.type,
         category: formData.category,
         amount: parseFloat(formData.amount),
-        date: formattedDate,
-        user_id: 1 // Replace with actual user ID from auth context
+        date: formattedDate
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to add transaction: ${response.status}`);
+      throw new Error(errorData.error || `Failed to update transaction: ${response.status}`);
     }
 
-    // Clear form and close modal
-    setFormData({
-      transaction_name: '',
-      type: 'debit',
-      category: '',
-      amount: '',
-      date: new Date().toISOString().split('T')[0]
-    });
-
-    onTransactionAdded();
+    onTransactionUpdated();
     onClose();
   } catch (err) {
-    setError(err.message || 'Failed to add transaction');
+    setError(err.message || 'Failed to update transaction');
   } finally {
     setIsLoading(false);
   }
@@ -75,11 +78,8 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Add New Transaction</h2>
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <h2 className="text-xl font-bold">Edit Transaction</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <FiX size={24} />
           </button>
         </div>
@@ -93,7 +93,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="transaction_name">
-              Transaction Name*
+              Transaction Name
             </label>
             <input
               type="text"
@@ -103,13 +103,12 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
-              placeholder="Enter transaction name"
             />
           </div>
 
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="type">
-              Type*
+              Type
             </label>
             <select
               id="type"
@@ -126,7 +125,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
 
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="category">
-              Category*
+              Category
             </label>
             <input
               type="text"
@@ -136,13 +135,12 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
-              placeholder="Enter category"
             />
           </div>
 
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="amount">
-              Amount*
+              Amount
             </label>
             <input
               type="number"
@@ -154,13 +152,12 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
               step="0.01"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
-              placeholder="0.00"
             />
           </div>
 
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="date">
-              Date*
+              Date
             </label>
             <input
               type="date"
@@ -187,7 +184,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
               disabled={isLoading}
             >
-              {isLoading ? 'Adding...' : 'Add Transaction'}
+              {isLoading ? 'Updating...' : 'Update Transaction'}
             </button>
           </div>
         </form>
@@ -196,4 +193,4 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionAdded, apiEndpoint 
   );
 };
 
-export default AddTransactionModal;
+export default EditTransactionModal;
