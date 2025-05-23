@@ -200,7 +200,7 @@ import {
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeItem, setActiveItem] = useState("Dashboard");
+  // const [activeItem, setActiveItem] = useState("Dashboard");
   const [isHovering, setIsHovering] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -485,78 +485,64 @@ const Sidebar = () => {
             {/* Navigation */}
             <nav className={`mt-6 ${isCollapsed ? "px-2" : "px-4"}`}>
               <ul className="space-y-3">
-                {navItems.map(
-                  ({ name, path, icon, bgColor, borderColor, textColor }) => {
-                    const isActive = activeItem === name;
-                    return (
-                      <li key={name}>
-                        <NavLink
-                          to={path}
-                          end
-                          className={`group flex items-center ${
-                            isCollapsed
-                              ? "justify-center"
-                              : "justify-start gap-3"
-                          } px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 hover:scale-105 relative overflow-hidden`}
-                          style={{
-                            background: isActive
-                              ? `linear-gradient(135deg, ${bgColor
-                                  .split(" ")[0]
-                                  .replace("from-", "")} 0%, ${bgColor
-                                  .split(" ")[1]
-                                  .replace("to-", "")} 100%)`
-                              : "",
-                            boxShadow: isActive
-                              ? `0 4px 12px -1px ${bgColor
-                                  .split(" ")[0]
-                                  .replace("from-", "")
-                                  .replace(
-                                    "/20",
-                                    "/10"
-                                  )}, 0 2px 4px -1px ${bgColor
-                                  .split(" ")[0]
-                                  .replace("from-", "")
-                                  .replace("/20", "/5")}`
-                              : "",
-                            borderLeft: isActive
-                              ? `3px solid ${borderColor.replace(
-                                  "border-",
-                                  ""
-                                )}`
-                              : "",
-                          }}
-                          onClick={() => setActiveItem(name)}
-                          onMouseEnter={() => setIsHovering(name)}
-                          onMouseLeave={() => setIsHovering(null)}
-                        >
-                          {/* Shine effect on hover */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                {navItems.map(({ name, path, icon, bgColor, borderColor, textColor }) => (
+  <li key={name}>
+    <NavLink
+      to={path}
+      end
+      className={({ isActive }) => 
+        `group flex items-center ${
+          isCollapsed ? "justify-center" : "justify-start gap-3"
+        } px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 hover:scale-105 relative overflow-hidden ${
+          isActive
+            ? `bg-gradient-to-r ${bgColor} border-l-3 ${borderColor}`
+            : ""
+        }`
+      }
+      style={({ isActive }) => ({
+        boxShadow: isActive
+          ? `0 4px 12px -1px ${bgColor
+              .split(" ")[0]
+              .replace("from-", "")
+              .replace("/20", "/10")}, 0 2px 4px -1px ${bgColor
+              .split(" ")[0]
+              .replace("from-", "")
+              .replace("/20", "/5")}`
+          : "",
+      })}
+      onMouseEnter={() => setIsHovering(name)}
+      onMouseLeave={() => setIsHovering(null)}
+    >
+      {({ isActive }) => (
+        <>
+          {/* Shine effect on hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                          {icon(isActive, isHovering === name)}
+          {icon(isActive, isHovering === name)}
 
-                          {!isCollapsed && (
-                            <span
-                              className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                                isActive
-                                  ? textColor + " font-semibold"
-                                  : "text-gray-600 dark:text-gray-300"
-                              }`}
-                            >
-                              {name}
-                            </span>
-                          )}
+          {!isCollapsed && (
+            <span
+              className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                isActive
+                  ? textColor + " font-semibold"
+                  : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              {name}
+            </span>
+          )}
 
-                          {/* Tooltip for collapsed state */}
-                          {isCollapsed && (
-                            <div className="absolute left-14 backdrop-blur-md bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-white px-3 py-2 rounded-lg shadow-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100 dark:border-gray-700">
-                              {name}
-                            </div>
-                          )}
-                        </NavLink>
-                      </li>
-                    );
-                  }
-                )}
+          {/* Tooltip for collapsed state */}
+          {isCollapsed && (
+            <div className="absolute left-14 backdrop-blur-md bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-white px-3 py-2 rounded-lg shadow-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100 dark:border-gray-700">
+              {name}
+            </div>
+          )}
+        </>
+      )}
+    </NavLink>
+  </li>
+))}
               </ul>
             </nav>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TransactionForm = ({ isOpen, onClose, onSubmit, initialData = {}, isEdit = false }) => {
@@ -14,6 +14,25 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, initialData = {}, isEdit =
     amount: initialData.amount || '',
     date: initialDate
   });
+
+  // Reset form when initialData changes (for edit mode)
+  useEffect(() => {
+    if (isEdit && initialData) {
+      const editInitialDate = initialData.date 
+        ? new Date(initialData.date).toISOString().slice(0, 16)
+        : new Date().toISOString().slice(0, 16);
+
+      setFormData({
+        transaction_name: initialData.transaction_name || '',
+        type: initialData.type || 'debit',
+        category: initialData.category || '',
+        amount: initialData.amount || '',
+        date: editInitialDate
+      });
+    }
+  }, [initialData, isEdit]);
+  
+  // ... rest of the component code
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');

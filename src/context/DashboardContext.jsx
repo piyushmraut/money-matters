@@ -175,45 +175,45 @@ export const DashboardProvider = ({ children }) => {
   }
 };
 
- const updateTransaction = async (id, transactionData) => {
-  try {
-    // Validate required fields
-    if (!transactionData.transaction_name || !transactionData.type || 
-        !transactionData.amount || !transactionData.date) {
-      return { success: false, error: 'Missing required fields' };
-    }
-
-    // Convert amount to integer (assuming API expects cents)
-    const amount = Math.round(parseFloat(transactionData.amount));
-
-    const response = await axios.post(
-      'https://bursting-gelding-24.hasura.app/api/rest/update-transaction',
-      {
-        id: id.toString(), // Ensure ID is string if API expects string
-        name: transactionData.transaction_name,
-        type: transactionData.type,
-        category: transactionData.category,
-        amount: amount,
-        date: transactionData.date
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-hasura-admin-secret': 'g08A3qQy00y8yFDq3y6N1ZQnhOPOa4msdie5EtKS1hFStar01JzPKrtKEzYY2BtF',
-          'x-hasura-role': 'user',
-          'x-hasura-user-id': user?.id?.toString()
-        }
+  const updateTransaction = async (id, transactionData) => {
+    try {
+      // Validate required fields
+      if (!transactionData.transaction_name || !transactionData.type || 
+          !transactionData.amount || !transactionData.date) {
+        return { success: false, error: 'Missing required fields' };
       }
-    );
-    
-    await Promise.all([fetchTransactions(), fetchTotals(), fetchGraphData()]);
-    return { success: true, data: response.data };
-  } catch (err) {
-    console.error('Error updating transaction:', err.response?.data || err.message);
-    const errorMsg = err.response?.data?.error || 'Failed to update transaction';
-    return { success: false, error: errorMsg };
-  }
-};
+
+      // Convert amount to integer (assuming API expects cents)
+      const amount = Math.round(parseFloat(transactionData.amount));
+
+      const response = await axios.post(
+        'https://bursting-gelding-24.hasura.app/api/rest/update-transaction',
+        {
+          id,
+          name: transactionData.transaction_name,
+          type: transactionData.type,
+          category: transactionData.category,
+          amount: amount,
+          date: transactionData.date
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-hasura-admin-secret': 'g08A3qQy00y8yFDq3y6N1ZQnhOPOa4msdie5EtKS1hFStar01JzPKrtKEzYY2BtF',
+            'x-hasura-role': 'user',
+            'x-hasura-user-id': user?.id?.toString()
+          }
+        }
+      );
+      
+      await Promise.all([fetchTransactions(), fetchTotals(), fetchGraphData()]);
+      return { success: true, data: response.data };
+    } catch (err) {
+      console.error('Error updating transaction:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.error || 'Failed to update transaction';
+      return { success: false, error: errorMsg };
+    }
+  };
 
   const deleteTransaction = async (id) => {
     try {
