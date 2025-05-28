@@ -9,15 +9,16 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await login(email, password);
-    } catch (err) {
-      setError(err.message || 'Invalid email or password');
-    }
-  };
+  // Update the handleSubmit function in src/pages/Login.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  try {
+    await login(email, password);
+  } catch (err) {
+    setError(err.message || 'Invalid email or password');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

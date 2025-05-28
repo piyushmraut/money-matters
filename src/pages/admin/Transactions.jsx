@@ -1,14 +1,10 @@
-import Sidebar from '../components/Sidebar';
-import { useAuth } from '../context/AuthContext';
+
+import React, { useState, useEffect } from "react";
+import Sidebar from '../../components/Sidebar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { useDashboard } from '../context/DashboardContext';
 import { 
-  FaEdit, 
-  FaTrash, 
-  FaPlus, 
-  FaSort, 
   FaFilter, 
+  FaSort, 
   FaSearch, 
   FaCalendarAlt, 
   FaMoneyBillWave,
@@ -25,42 +21,35 @@ import {
   FaChevronUp,
   FaChevronLeft,
   FaChevronRight,
-  FaBars
+  FaBars,
+  FaDownload
 } from 'react-icons/fa';
-import TransactionForm from '../components/TransactionForm';
-import DeleteConfirmation from '../components/DeleteConfirmation';
 
-const Transactions = () => {
-  const { user } = useAuth();
-  const { 
-    transactions, 
-    isLoading, 
-    error, 
-    refreshData,
-    addTransaction: contextAddTransaction,
-    updateTransaction: contextUpdateTransaction,
-    deleteTransaction: contextDeleteTransaction
-  } = useDashboard();
-  
+const AdminTransactions = () => {
   const [activeTab, setActiveTab] = useState('All Transactions');
   const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [filters, setFilters] = useState({
-    category: '',
+    selectedCategories: [],
     startDate: '',
     endDate: '',
     minAmount: '',
     maxAmount: '',
-    searchQuery: ''
+    searchQuery: '',
+    selectedUsers: []
   });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userProfiles, setUserProfiles] = useState({});
   const transactionsPerPage = 7;
+
+  const API_BASE_URL = "https://bursting-gelding-24.hasura.app/api/rest/all-transactions";
+  const PROFILE_API_URL = "https://bursting-gelding-24.hasura.app/api/rest/profile";
+  const ADMIN_SECRET = "g08A3qQy00y8yFDq3y6N1ZQnhOPOa4msdie5EtKS1hFStar01JzPKrtKEzYY2BtF";
 
   // Animation variants
   const containerVariants = {
@@ -137,37 +126,81 @@ const Transactions = () => {
     return colorMap[category.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
-  // Wrap the context functions to ensure proper updates
-  const addTransaction = async (data) => {
-    const result = await contextAddTransaction(data);
-    if (result.success) {
-      await refreshData();
+  const fetchUserProfiles = async () => {
+    try {
+      const response = await fetch(PROFILE_API_URL, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-hasura-admin-secret": ADMIN_SECRET,
+          "x-hasura-role": "admin",
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const profiles = {};
+        if (data.users && data.users.length > 0) {
+          data.users.forEach(user => {
+            profiles[user.id] = user.name || `User ${user.id}`;
+          });
+        }
+        setUserProfiles(profiles);
+        console.log("Fetched profiles:", profiles);
+      } else {
+        console.error(`Failed to fetch user profiles: ${response.status}`);
+        const userIds = [...new Set(transactions.map(t => t.user_id))];
+        const defaultProfiles = {};
+        userIds.forEach(id => defaultProfiles[id] = `User ${id}`);
+        setUserProfiles(defaultProfiles);
+      }
+    } catch (err) {
+      console.error("Error fetching user profiles:", err);
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const defaultProfiles = {};
+      userIds.forEach(id => defaultProfiles[id] = `User ${id}`);
+      setUserProfiles(defaultProfiles);
     }
-    return result;
-  };
-
-  const updateTransaction = async (data) => {
-    const result = await contextUpdateTransaction(selectedTransaction.id, data);
-    if (result.success) {
-      await refreshData();
-    }
-    return result;
-  };
-
-  const deleteTransaction = async () => {
-    const result = await contextDeleteTransaction(selectedTransaction.id);
-    if (result.success) {
-      await refreshData();
-    }
-    return result;
   };
 
   useEffect(() => {
-    refreshData();
+    const fetchTransactions = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}?limit=10000&offset=0`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-hasura-admin-secret": ADMIN_SECRET,
+            "x-hasura-role": "admin",
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.transactions) {
+          throw new Error("No transactions data found in response");
+        }
+
+        setTransactions(data.transactions);
+        fetchUserProfiles();
+      } catch (err) {
+        setError(err.message);
+        console.error("API Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTransactions();
   }, []);
 
   useEffect(() => {
-    if (transactions) {
+    if (transactions.length > 0) {
       let filtered = [...transactions];
       
       if (activeTab === 'Debit') {
@@ -176,9 +209,14 @@ const Transactions = () => {
         filtered = filtered.filter(t => t.type === 'credit');
       }
       
-      if (filters.category) {
-        filtered = filtered.filter(t => t.category === filters.category);
+      if (filters.selectedCategories.length > 0) {
+        filtered = filtered.filter(t => filters.selectedCategories.includes(t.category));
       }
+      
+      if (filters.selectedUsers.length > 0) {
+        filtered = filtered.filter(t => filters.selectedUsers.includes(t.user_id));
+      }
+      
       if (filters.startDate) {
         filtered = filtered.filter(t => new Date(t.date) >= new Date(filters.startDate));
       }
@@ -193,27 +231,35 @@ const Transactions = () => {
       }
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        filtered = filtered.filter(t => 
-          t.transaction_name.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query)
-        );
+        filtered = filtered.filter(t => {
+          const userName = userProfiles[t.user_id]?.toLowerCase() || '';
+          return (
+            t.transaction_name.toLowerCase().includes(query) ||
+            t.category.toLowerCase().includes(query) ||
+            userName.includes(query)
+          );
+        });
       }
       
       if (sortConfig.key) {
         filtered.sort((a, b) => {
-          if (a[sortConfig.key] < b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
+          let aValue, bValue;
+          if (sortConfig.key === 'user_id') {
+            aValue = userProfiles[a.user_id]?.toLowerCase() || '';
+            bValue = userProfiles[b.user_id]?.toLowerCase() || '';
+          } else {
+            aValue = a[sortConfig.key];
+            bValue = b[sortConfig.key];
           }
-          if (a[sortConfig.key] > b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
-          }
+          if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
           return 0;
         });
       }
       
       setFilteredTransactions(filtered);
     }
-  }, [activeTab, transactions, sortConfig, filters]);
+  }, [activeTab, transactions, sortConfig, filters, userProfiles]);
 
   const handleSort = (key) => {
     let direction = 'asc';
@@ -223,60 +269,59 @@ const Transactions = () => {
     setSortConfig({ key, direction });
   };
 
-  const handleEdit = (transaction) => {
-    setSelectedTransaction({
-      ...transaction,
-      transaction_name: transaction.transaction_name,
-      type: transaction.type,
-      category: transaction.category,
-      amount: transaction.amount,
-      date: transaction.date
-    });
-    setShowEditForm(true);
-  };
-
-  const handleDelete = (transaction) => {
-    setSelectedTransaction(transaction);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleAdd = () => {
-    setShowAddForm(true);
-  };
-
-  const handleDeleteConfirmed = async () => {
-    await deleteTransaction();
-    setShowDeleteConfirm(false);
-    setSelectedTransaction(null);
-  };
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const resetFilters = () => {
     setFilters({
-      category: '',
+      selectedCategories: [],
       startDate: '',
       endDate: '',
       minAmount: '',
       maxAmount: '',
-      searchQuery: ''
+      searchQuery: '',
+      selectedUsers: []
     });
   };
 
   const formatDate = (dateString) => {
-    const options = { 
-      day: 'numeric', 
-      month: 'short', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    };
+    const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  const categories = [...new Set(transactions.map(t => t.category))].filter(Boolean);
+  const users = [...new Set(transactions.map(t => t.user_id))].sort((a, b) => a - b);
+
+  const exportToCSV = () => {
+    const headers = ["User", "Name", "Category", "Type", "Amount", "Date"];
+    const csvRows = [];
+    
+    csvRows.push(headers.join(','));
+    
+    filteredTransactions.forEach(transaction => {
+      const userName = userProfiles[transaction.user_id] || `User ${transaction.user_id}`;
+      const row = [
+        `"${userName.replace(/"/g, '""')}"`,
+        `"${transaction.transaction_name?.replace(/"/g, '""') || ''}"`,
+        `"${transaction.category?.replace(/"/g, '""') || ''}"`,
+        `"${transaction.type || ''}"`,
+        transaction.amount,
+        `"${formatDate(transaction.date)}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `admin_transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Shimmer Loading Component
@@ -291,6 +336,9 @@ const Transactions = () => {
         </div>
       </td>
       <td className="px-4 py-4 sm:px-6 whitespace-nowrap">
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+      </td>
+      <td className="px-4 py-4 sm:px-6 whitespace-nowrap">
         <div className="h-6 w-16 bg-gray-200 rounded-full"></div>
       </td>
       <td className="px-4 py-4 sm:px-6 whitespace-nowrap">
@@ -301,12 +349,6 @@ const Transactions = () => {
       </td>
       <td className="px-4 py-4 sm:px-6 whitespace-nowrap">
         <div className="h-4 w-20 bg-gray-200 rounded"></div>
-      </td>
-      <td className="px-4 py-4 sm:px-6 whitespace-nowrap">
-        <div className="flex space-x-2">
-          <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-          <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-        </div>
       </td>
     </tr>
   );
@@ -327,10 +369,9 @@ const Transactions = () => {
   // Loading state with shimmer UI
   if (isLoading) {
     return (
-      <div className="flex bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen ">
+      <div className="flex bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col md:ml-64">
-          {/* Mobile header */}
           <motion.nav 
             className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 p-4 md:p-6"
             initial={{ y: -50, opacity: 0 }}
@@ -350,11 +391,9 @@ const Transactions = () => {
                   <div className="h-4 w-48 bg-gray-200 rounded mt-1"></div>
                 </div>
               </div>
-              <div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
             </div>
           </motion.nav>
 
-          {/* Shimmer Cards */}
           <div className="m-4">
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <ShimmerCard />
@@ -363,17 +402,13 @@ const Transactions = () => {
             </div>
           </div>
 
-          {/* Shimmer Table */}
           <div className="m-4 flex-1">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-              {/* Shimmer Tabs */}
               <div className="px-4 py-4 sm:px-6 flex overflow-x-auto">
                 {[1, 2, 3].map((item) => (
                   <div key={item} className="h-10 w-32 bg-gray-200 rounded-lg mr-2"></div>
                 ))}
               </div>
-
-              {/* Shimmer Table Header */}
               <div className="px-4 py-4 sm:px-6 bg-gradient-to-r from-slate-50 to-indigo-50">
                 <div className="grid grid-cols-6 gap-4">
                   {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -381,8 +416,6 @@ const Transactions = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Shimmer Table Rows */}
               <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
                   {[1, 2, 3, 4, 5, 6, 7].map((item) => (
@@ -390,8 +423,6 @@ const Transactions = () => {
                   ))}
                 </tbody>
               </table>
-
-              {/* Shimmer Pagination */}
               <div className="px-4 py-4 sm:px-6 bg-white border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div className="h-4 w-48 bg-gray-200 rounded"></div>
@@ -435,20 +466,11 @@ const Transactions = () => {
                 </button>
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    Transactions
+                    Admin Transactions
                   </h1>
                   <p className="text-slate-600 mt-1 text-sm md:text-base">Something went wrong</p>
                 </div>
               </div>
-              <motion.button 
-                onClick={handleAdd}
-                className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaPlus className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="text-sm md:text-base">Add Transaction</span>
-              </motion.button>
             </div>
           </motion.nav>
           <div className="flex-1 flex items-center justify-center p-4">
@@ -464,7 +486,7 @@ const Transactions = () => {
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">Error Loading Data</h3>
               <p className="text-gray-600 text-sm md:text-base mb-6">{error}</p>
               <motion.button 
-                onClick={refreshData}
+                onClick={() => fetchTransactions()}
                 className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm md:text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -482,7 +504,6 @@ const Transactions = () => {
     <div className="flex bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen flex-wrap">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col md:ml-64">
-        {/* Enhanced Navbar */}
         <motion.nav 
           className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 p-4 md:p-6"
           initial={{ y: -50, opacity: 0 }}
@@ -504,33 +525,14 @@ const Transactions = () => {
               </button>
               <div>
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Transactions
+                  Admin Transactions
                 </h1>
-                <p className="text-slate-600 mt-1 text-sm md:text-base font-medium">Manage your financial transactions with ease</p>
+                <p className="text-slate-600 mt-1 text-sm md:text-base font-medium">View all user transactions</p>
               </div>
             </motion.div>
-            <motion.button 
-              onClick={handleAdd}
-              className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group text-sm md:text-base"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ x: 30, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <motion.div
-                animate={{ rotate: 0 }}
-                whileHover={{ rotate: 90 }}
-                transition={{ duration: 0.3 }}
-              >
-                <FaPlus className="w-3 h-3 md:w-4 md:h-4" />
-              </motion.div>
-              <span>Add Transaction</span>
-            </motion.button>
           </div>
         </motion.nav>
 
-        {/* Stats Cards - Responsive Grid */}
         <div className='m-2 md:m-4'>
           {filteredTransactions.length > 0 && (
             <motion.div 
@@ -629,7 +631,6 @@ const Transactions = () => {
           )}
         </div>
 
-        {/* Main Content */}
         <motion.div 
           className="flex-1 p-2 md:p-4 lg:p-6"
           variants={containerVariants}
@@ -640,7 +641,6 @@ const Transactions = () => {
             className="bg-white/90 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-xl border border-white/20 overflow-hidden"
             variants={cardVariants}
           >
-            {/* Enhanced Search and Filter Bar */}
             <motion.div 
               className="p-4 md:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-indigo-100"
               variants={itemVariants}
@@ -683,11 +683,19 @@ const Transactions = () => {
                     Filters
                     {showFilters ? <FaChevronUp className="ml-1 md:ml-2 w-3 h-3 md:w-4 md:h-4" /> : <FaChevronDown className="ml-1 md:ml-2 w-3 h-3 md:w-4 md:h-4" />}
                   </motion.button>
+                  <motion.button
+                    onClick={exportToCSV}
+                    className="px-3 py-2 md:px-4 md:py-3 flex items-center text-xs md:text-sm rounded-lg md:rounded-xl font-medium transition-all duration-300 bg-white text-indigo-600 hover:bg-indigo-50 border-2 border-indigo-200"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaDownload className="mr-1 md:mr-2 w-3 h-3 md:w-4 md:h-4" />
+                    Export CSV
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
 
-            {/* Enhanced Filters Panel */}
             <AnimatePresence>
               {showFilters && (
                 <motion.div 
@@ -703,26 +711,61 @@ const Transactions = () => {
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.1 }}
                     >
-                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Category</label>
-                      <select
-                        name="category"
-                        value={filters.category}
-                        onChange={handleFilterChange}
-                        className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-indigo-200 rounded-lg md:rounded-xl text-xs md:text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-300 bg-white/80"
-                      >
-                        <option value="">All Categories</option>
-                        <option value="shopping">🛍️ Shopping</option>
-                        <option value="food">🍽️ Food</option>
-                        <option value="transfer">💸 Transfer</option>
-                        <option value="entertainment">🎮 Entertainment</option>
-                        <option value="salary">💰 Salary</option>
-                      </select>
+                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Categories</label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {categories.map(category => (
+                          <div key={category} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={filters.selectedCategories.includes(category)}
+                              onChange={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  selectedCategories: prev.selectedCategories.includes(category)
+                                    ? prev.selectedCategories.filter(c => c !== category)
+                                    : [...prev.selectedCategories, category]
+                                }));
+                              }}
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label className="ml-2 text-sm text-gray-700">{category}</label>
+                          </div>
+                        ))}
+                      </div>
                     </motion.div>
                     
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.2 }}
+                    >
+                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Users</label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {users.map(userId => (
+                          <div key={userId} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={filters.selectedUsers.includes(userId)}
+                              onChange={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  selectedUsers: prev.selectedUsers.includes(userId)
+                                    ? prev.selectedUsers.filter(u => u !== userId)
+                                    : [...prev.selectedUsers, userId]
+                                }));
+                              }}
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label className="ml-2 text-sm text-gray-700">{userProfiles[userId] || `User ${userId}`}</label>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
                     >
                       <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Start Date</label>
                       <div className="relative">
@@ -742,7 +785,7 @@ const Transactions = () => {
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 }}
+                      transition={{ delay: 0.4 }}
                     >
                       <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">End Date</label>
                       <div className="relative">
@@ -762,7 +805,7 @@ const Transactions = () => {
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.4 }}
+                      transition={{ delay: 0.5 }}
                     >
                       <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Amount Range</label>
                       <div className="flex space-x-1 md:space-x-2">
@@ -800,7 +843,7 @@ const Transactions = () => {
                     className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 md:gap-4"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
+                    transition={{ delay: 0.6 }}
                   >
                     <motion.button
                       onClick={resetFilters}
@@ -823,7 +866,6 @@ const Transactions = () => {
               )}
             </AnimatePresence>
 
-            {/* Enhanced Transaction Tabs */}
             <motion.div 
               className="px-4 pt-4 md:px-6 md:pt-6 flex space-x-1 border-b border-indigo-100 overflow-x-auto"
               variants={itemVariants}
@@ -855,7 +897,6 @@ const Transactions = () => {
               ))}
             </motion.div>
 
-            {/* Enhanced Transactions Display */}
             {filteredTransactions.length === 0 ? (
               <motion.div 
                 className="p-6 md:p-12 text-center"
@@ -879,11 +920,11 @@ const Transactions = () => {
                 </motion.div>
                 <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900 mb-2">No transactions found</h3>
                 <p className="text-slate-600 text-sm md:text-base mb-6 max-w-md mx-auto">
-                  {Object.values(filters).some(Boolean) 
+                  {Object.values(filters).some(filter => filter.length > 0) 
                     ? "No transactions match your current filters. Try adjusting your search criteria." 
-                    : "Start building your financial history by adding your first transaction."}
+                    : "There are no transactions to display."}
                 </p>
-                {Object.values(filters).some(Boolean) ? (
+                {Object.values(filters).some(filter => filter.length > 0) && (
                   <motion.button
                     onClick={resetFilters}
                     className="px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg md:rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm md:text-base"
@@ -892,16 +933,6 @@ const Transactions = () => {
                   >
                     Clear Filters
                   </motion.button>
-                ) : (
-                  <motion.button
-                    onClick={handleAdd}
-                    className="px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg md:rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 mx-auto text-sm md:text-base"
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FaPlus className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Add Your First Transaction</span>
-                  </motion.button>
                 )}
               </motion.div>
             ) : (
@@ -909,6 +940,20 @@ const Transactions = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-indigo-50">
+                      <th 
+                        className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-indigo-100 transition-colors duration-200 group"
+                        onClick={() => handleSort('user_id')}
+                      >
+                        <div className="flex items-center space-x-1 md:space-x-2">
+                          <span>User</span>
+                          <motion.div
+                            animate={{ rotate: sortConfig.key === 'user_id' && sortConfig.direction === 'desc' ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <FaSort className="text-xs opacity-50 group-hover:opacity-100 transition-opacity" />
+                          </motion.div>
+                        </div>
+                      </th>
                       <th 
                         className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-indigo-100 transition-colors duration-200 group"
                         onClick={() => handleSort('transaction_name')}
@@ -999,9 +1044,6 @@ const Transactions = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-100">
@@ -1021,6 +1063,18 @@ const Transactions = () => {
                           className="hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 group"
                           whileHover={{ scale: 1.01 }}
                         >
+                          <td className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2 md:space-x-3">
+                              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
+                                {userProfiles[transaction.user_id]?.charAt(0).toUpperCase() || 'U'}
+                              </div>
+                              <div>
+                                <div className="text-xs md:text-sm font-medium text-slate-900">
+                                  {userProfiles[transaction.user_id] || `User ${transaction.user_id}`}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
                           <td className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-2 md:space-x-3">
                               <motion.div 
@@ -1092,35 +1146,12 @@ const Transactions = () => {
                               <span>{Math.abs(transaction.amount).toLocaleString()}</span>
                             </motion.div>
                           </td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-xs md:text-sm text-slate-500">
-                            <div className="flex space-x-1 md:space-x-2">
-                              <motion.button
-                                onClick={() => handleEdit(transaction)}
-                                className="p-1 md:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-100 rounded-full transition-all duration-200"
-                                whileHover={{ scale: 1.1, rotate: 5 }}
-                                whileTap={{ scale: 0.9 }}
-                                aria-label="Edit transaction"
-                              >
-                                <FaEdit className="w-3 h-3 md:w-4 md:h-4" />
-                              </motion.button>
-                              <motion.button
-                                onClick={() => handleDelete(transaction)}
-                                className="p-1 md:p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-full transition-all duration-200"
-                                whileHover={{ scale: 1.1, rotate: 5 }}
-                                whileTap={{ scale: 0.9 }}
-                                aria-label="Delete transaction"
-                              >
-                                <FaTrash className="w-3 h-3 md:w-4 md:h-4" />
-                              </motion.button>
-                            </div>
-                          </td>
                         </motion.tr>
                       ))}
                     </AnimatePresence>
                   </tbody>
                 </table>
 
-                {/* Pagination */}
                 {filteredTransactions.length > transactionsPerPage && (
                   <motion.div 
                     className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 bg-white border-t border-slate-100"
@@ -1153,7 +1184,6 @@ const Transactions = () => {
                         <span>Previous</span>
                       </motion.button>
                       
-                      {/* Page numbers */}
                       <div className="flex space-x-1">
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
                           <motion.button
@@ -1194,65 +1224,8 @@ const Transactions = () => {
           </motion.div>
         </motion.div>
       </div>
-
-      {/* Enhanced Modals */}
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <TransactionForm
-              isOpen={showAddForm}
-              onClose={() => setShowAddForm(false)}
-              onSubmit={addTransaction}
-            />
-          </motion.div>
-        )}
-
-        {showEditForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <TransactionForm
-              isOpen={showEditForm}
-              onClose={() => {
-                setShowEditForm(false);
-                setSelectedTransaction(null);
-              }}
-              onSubmit={updateTransaction}
-              initialData={selectedTransaction || {}}
-              isEdit={true}
-            />
-          </motion.div>
-        )}
-
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DeleteConfirmation
-              isOpen={showDeleteConfirm}
-              onClose={() => {
-                setShowDeleteConfirm(false);
-                setSelectedTransaction(null);
-              }}
-              onConfirm={handleDeleteConfirmed}
-              transactionName={selectedTransaction?.transaction_name || ''}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
 
-export default Transactions;
+export default AdminTransactions;
